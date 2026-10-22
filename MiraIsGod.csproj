@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-  <OutputType>WinExe</OutputType>
-  <TargetFramework>net8.0-windows</TargetFramework>
-  <UseWindowsForms>true</UseWindowsForms>
+<PropertyGroup>
+  <TargetFramework>net6.0</TargetFramework>
+  <LangVersion>latest</LangVersion>
+  <AssemblyName>MiraIsGod</AssemblyName>
 </PropertyGroup>
   <ItemGroup>
     <!-- installer フォルダはインストーラー用なので、プラグインには入れない -->
