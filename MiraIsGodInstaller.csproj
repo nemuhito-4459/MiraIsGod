@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    MiraIsGod のインストーラー
+    ・.NET Framework 4.8 (Windows 10 / 11 にもともと入っている) で動くので、ほかに何も入れなくていい
+    ・WinExe = 黒い画面 (コンソール) を出さない、ふつうのウィンドウのアプリ
+    ・プラグインの DLL を中に埋め込んで、1つの .exe にする
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>MiraIsGodInstaller</AssemblyName>
+    <RootNamespace>MiraIsGodInstaller</RootNamespace>
+    <!-- 埋め込むプラグインの DLL の場所 (ビルドのときに変えられる) -->
+    <PluginDll Condition="'$(PluginDll)' == ''">../out/MiraIsGod.dll</PluginDll>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Windows 以外 (GitHub Actions の Linux) でも .NET Framework 用にビルドするための部品 -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <!-- ウィンドウ (Windows Forms) と、絵を描く道具 -->
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
+    <!-- 名前を入れる小さな窓 (InputBox) を使うため -->
+    <Reference Include="Microsoft.VisualBasic" />
+    <!-- プラグインの DLL を .exe の中に入れる -->
+    <EmbeddedResource Include="$(PluginDll)" LogicalName="MiraIsGod.dll" />
+  </ItemGroup>
+</Project>
