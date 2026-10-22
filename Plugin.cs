@@ -771,3 +771,35 @@ public static class DoorLogUpdatePatch
         catch (System.Exception e) { Plugin.Logger.LogError($"強化ドアログの処理に失敗: {e}"); }
     }
 }
+
+
+// タイトル画面の右上 (hamo のバージョンの下) に名前とバージョンを出す
+[HarmonyPatch(typeof(MainMenuManager), nameof(MainMenuManager.Start))]
+public static class VersionLabelPatch
+{
+    // ===== 設定 =====
+    public const string DisplayVersion = "v1.0a";          // 好きに決めてOK
+    static readonly Vector3 Position = new(0.3f, 0.9f, -10f); // 右上の角からの距離 (左へ, 下へ, 手前へ)
+    const float FontSize = 2f;
+
+    public static void Postfix(MainMenuManager __instance)
+    {
+        GameObject go = new("MiraIsGodVersion");
+        go.transform.SetParent(__instance.transform, false);
+        go.layer = 5;
+
+        var label = go.AddComponent<TMPro.TextMeshPro>();
+        var vs = Object.FindObjectOfType<VersionShower>();
+        if (vs != null) label.font = vs.text.font;
+        label.text = $"Mira Is God {DisplayVersion}";
+        label.fontSize = FontSize;
+        label.alignment = TMPro.TextAlignmentOptions.TopRight;
+        label.rectTransform.pivot = new Vector2(1f, 1f);
+        label.enableWordWrapping = false;
+
+        var ap = go.AddComponent<AspectPosition>();
+        ap.Alignment = AspectPosition.EdgeAlignments.RightTop;
+        ap.DistanceFromEdge = Position;
+        ap.AdjustPosition();
+    }
+}
