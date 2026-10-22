@@ -6,7 +6,7 @@
 </PropertyGroup>
   <ItemGroup>
     <!-- installer フォルダはインストーラー用なので、プラグインには入れない -->
-    <Compile Remove="installer/**" />
+    <Compile Remove="Installer/**" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AmongUs.GameLibs.Steam" Version="2026.9.29" PrivateAssets="all" />
