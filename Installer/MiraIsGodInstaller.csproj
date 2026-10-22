@@ -5,15 +5,11 @@
     ・WinExe = 黒い画面 (コンソール) を出さない、ふつうのウィンドウのアプリ
     ・プラグインの DLL を中に埋め込んで、1つの .exe にする
   -->
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net48</TargetFramework>
-    <LangVersion>latest</LangVersion>
-    <AssemblyName>MiraIsGodInstaller</AssemblyName>
-    <RootNamespace>MiraIsGodInstaller</RootNamespace>
-    <!-- 埋め込むプラグインの DLL の場所 (ビルドのときに変えられる) -->
-    <PluginDll Condition="'$(PluginDll)' == ''">../out/MiraIsGod.dll</PluginDll>
-  </PropertyGroup>
+     <PropertyGroup>
+     <TargetFramework>net6.0</TargetFramework>
+     <LangVersion>latest</LangVersion>
+     <AssemblyName>MiraIsGod</AssemblyName>
+   </PropertyGroup>
   <ItemGroup>
     <!-- Windows 以外 (GitHub Actions の Linux) でも .NET Framework 用にビルドするための部品 -->
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
