@@ -779,7 +779,7 @@ public static class VersionLabelPatch
 {
     // ===== 設定 =====
     public const string DisplayVersion = "v1.0a";          // 好きに決めてOK
-    static readonly Vector3 Position = new(0.3f, 0.9f, -10f); // 右上の角からの距離 (左へ, 下へ, 手前へ)
+    static readonly Vector3 Position = new(0.8f, 0.8f, -10f); // 右上の角からの距離 (左へ, 下へ, 手前へ)
     const float FontSize = 2f;
 
     public static void Postfix(MainMenuManager __instance)
