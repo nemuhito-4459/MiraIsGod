@@ -162,6 +162,9 @@ namespace MiraIsGodInstaller
         // 一方通行: つながり ("3-11") → 行ける方向 (From, To)
         Dictionary<string, (int From, int To)> oneWay = new Dictionary<string, (int, int)>();
 
+        // プラグイン全体の ON / OFF (ゲームのロビーで切り替えるもの。インストールし直しても消えないように、読んで書き戻す)
+        bool pluginEnabled = true;
+
         // 強化ドアログ
         bool doorLogEnabled = true;                                        // 使うか
         List<Sensor> sensors = new List<Sensor>();                         // 自分で置いたセンサー (ゲームの座標)。空なら本物の3か所
@@ -707,6 +710,7 @@ namespace MiraIsGodInstaller
                                 oneWay[Mira.Key(a, b)] = (a, b);
                         }
                     }
+                    if (t.StartsWith("PluginEnabled")) pluginEnabled = value.Trim().ToLower() != "false";
                     if (t.StartsWith("Enabled")) doorLogEnabled = value.Trim().ToLower() != "false";
                     if (t.StartsWith("Sensors"))
                     {
@@ -767,6 +771,13 @@ namespace MiraIsGodInstaller
                 string pairs = string.Join(",", blocked.OrderBy(k => k));
                 var sb = new StringBuilder();
                 sb.AppendLine("## MiraIsGod インストーラーで作った設定ファイル");
+                sb.AppendLine();
+                sb.AppendLine("[General]");
+                sb.AppendLine();
+                sb.AppendLine("## プラグイン全体を使うか (true = ON / false = OFF)。ロビーで左下の表示をクリックしても切り替えられる。");
+                sb.AppendLine("# Setting type: Boolean");
+                sb.AppendLine("# Default value: true");
+                sb.AppendLine("PluginEnabled = " + (pluginEnabled ? "true" : "false"));
                 sb.AppendLine();
                 sb.AppendLine("[Vent]");
                 sb.AppendLine();
