@@ -42,7 +42,8 @@
 //     → MOD なしの人にも見える。ミラHQのときだけ。
 //     メモ: 生きている人は、試合中はチャットを開けないので、
 //           最初の会議でチャットを開いたときに読める (幽霊はすぐ読める)
-//   ・ホストの画面の左下に「MiraIsGod」と常に出す
+//   ・ホストの画面の左下に「MiraIsGod: ON / OFF」と常に出す
+//     ロビーでは、クリックするとプラグイン全体の ON / OFF が切り替わる (OFF だと全部止まる)
 //     → ホストの画面だけ。ロビーでも試合中でも出る。
 //
 //  【一方通行】
@@ -83,6 +84,10 @@ public class Plugin : BasePlugin
 {
     // エラーをログ (BepInEx/LogOutput.log) に書くための入れ物
     public static BepInEx.Logging.ManualLogSource Logger;
+
+    // プラグイン全体の ON / OFF (ロビーの左下の表示をクリックで切り替える)
+    // 設定ファイルの [General] PluginEnabled に保存されるので、次に起動したときも同じ
+    public static BepInEx.Configuration.ConfigEntry<bool> PluginEnabled;
 
     // ゲームの起動時に1回だけ呼ばれる
     // PatchAll() で、このファイルの中の [HarmonyPatch] が付いたものを全部登録する
@@ -125,6 +130,9 @@ public class Plugin : BasePlugin
             "一方通行のベント。「行ける方向」を「番号>番号」で書いて、カンマで区切る (例: 3>11 = 原子炉→発射台だけ行ける)。空にすると一方通行なし。"
         ).Value;
         VentLock.LoadOneWay(oneWay);
+
+        // プラグイン全体の ON / OFF
+        PluginEnabled = Config.Bind("General", "PluginEnabled", true, "プラグイン全体を使うか (true = ON / false = OFF)。ロビーで左下の表示をクリックしても切り替えられる。");
 
         // 強化ドアログの設定
         DoorLogNotice.Enabled = Config.Bind("DoorLog", "Enabled", true, "強化ドアログを使うか (true = 使う / false = 使わない)").Value;
@@ -189,8 +197,11 @@ public static class VentLock
 
     // 今のマップがミラHQか (マップの番号: 0=スケルド 1=ミラHQ 2=ポーラス 4=エアシップ 5=ファングル)
     // GameOptionsManager.Instance が null (まだ準備できていない) のときは「違う」扱い
+    // メモ: プラグインが OFF のときは「ミラHQではない」ことにする
+    //       → ベントの制限・強化ドアログ・試合開始時のチャットが、全部止まる
     public static bool IsMira() =>
-        GameOptionsManager.Instance != null && GameOptionsManager.Instance.CurrentGameOptions.MapId == 1;
+        Plugin.PluginEnabled.Value
+        && GameOptionsManager.Instance != null && GameOptionsManager.Instance.CurrentGameOptions.MapId == 1;
 
     // ===== 設定: 入れないベント (封鎖) =====
     // ここに入っているベントは、全員にずっと「掃除中」に見せる
@@ -464,7 +475,8 @@ public static class NoticePatch
     }
 }
 
-// ホストの画面の左下に「MiraIsGod」と常に表示する
+// ホストの画面の左下に「MiraIsGod: ON / OFF」と常に表示する
+// ロビーにいる間は、この表示をクリックすると、プラグイン全体の ON / OFF が切り替わる
 // (左上は MOD の設定一覧やタスク一覧と重なるので、左下にした)
 // HudManager = 画面の上に重なっている表示 (ボタンやタスク一覧など) をまとめているもの
 // ロビーでも試合中でも、毎フレーム Update が呼ばれるので、
@@ -482,8 +494,29 @@ public static class LabelPatch
 
     public static void Postfix(HudManager __instance)
     {
-        if (label != null) return; // もう作ってある
+        if (label == null) Create(__instance);
+        if (label == null) return;
 
+        // 毎フレーム、ON / OFF の表示を更新する
+        bool on = Plugin.PluginEnabled.Value;
+        bool inLobby = LobbyBehaviour.Instance != null;
+        label.text = $"{Text}: {(on ? "ON" : "OFF")}" + (inLobby ? "  <size=70%>(クリックで切り替え)</size>" : "");
+        label.color = on ? new Color(0.45f, 0.9f, 0.55f) : new Color(0.6f, 0.6f, 0.6f); // ON = 緑 / OFF = 灰色
+
+        // ロビーにいる間だけ、クリックで切り替える
+        if (!inLobby || !Input.GetMouseButtonDown(0)) return;
+        Camera cam = Camera.main;
+        if (cam == null) return;
+        Vector3 mouse = cam.ScreenToWorldPoint(Input.mousePosition);     // マウスの位置 (ゲームの中の座標)
+        Bounds b = label.GetComponent<MeshRenderer>().bounds;              // 文字が描かれている範囲
+        if (mouse.x < b.min.x || mouse.x > b.max.x || mouse.y < b.min.y || mouse.y > b.max.y) return;
+        Plugin.PluginEnabled.Value = !on; // 切り替え (設定ファイルにも自動で保存される)
+        Plugin.Logger.LogInfo($"プラグインを {(Plugin.PluginEnabled.Value ? "ON" : "OFF")} にした");
+    }
+
+    // 文字を作る (最初の1回だけ)
+    static void Create(HudManager __instance)
+    {
         // 新しい入れ物を作って、HudManager の子にする (画面に一緒にくっついて動く)
         GameObject go = new("MiraIsGodLabel");
         go.transform.SetParent(__instance.transform, false);
@@ -495,6 +528,7 @@ public static class LabelPatch
         if (ping != null) label.font = ping.text.font; // Among Us の文字の形を借りる (ないと文字が出ないことがある)
         label.text = Text;
         label.fontSize = FontSize;
+        label.richText = true;                                // <size=70%> などを使えるようにする
         label.alignment = TMPro.TextAlignmentOptions.BottomLeft; // 左下そろえ
         label.rectTransform.pivot = new Vector2(0f, 0f);      // 文字の左下を基準にする
         label.enableWordWrapping = false;                     // 折り返さない
@@ -769,37 +803,5 @@ public static class DoorLogUpdatePatch
         if (ShipStatus.Instance == null) return; // ロビーではマップがまだないので、何もしない
         try { DoorLogNotice.Update(); }
         catch (System.Exception e) { Plugin.Logger.LogError($"強化ドアログの処理に失敗: {e}"); }
-    }
-}
-
-
-// タイトル画面の右上 (hamo のバージョンの下) に名前とバージョンを出す
-[HarmonyPatch(typeof(MainMenuManager), nameof(MainMenuManager.Start))]
-public static class VersionLabelPatch
-{
-    // ===== 設定 =====
-    public const string DisplayVersion = "v1.0a";          // 好きに決めてOK
-    static readonly Vector3 Position = new(0.8f, 0.8f, -10f); // 右上の角からの距離 (左へ, 下へ, 手前へ)
-    const float FontSize = 2f;
-
-    public static void Postfix(MainMenuManager __instance)
-    {
-        GameObject go = new("MiraIsGodVersion");
-        go.transform.SetParent(__instance.transform, false);
-        go.layer = 5;
-
-        var label = go.AddComponent<TMPro.TextMeshPro>();
-        var vs = Object.FindObjectOfType<VersionShower>();
-        if (vs != null) label.font = vs.text.font;
-        label.text = $"Mira Is God {DisplayVersion}";
-        label.fontSize = FontSize;
-        label.alignment = TMPro.TextAlignmentOptions.TopRight;
-        label.rectTransform.pivot = new Vector2(1f, 1f);
-        label.enableWordWrapping = false;
-
-        var ap = go.AddComponent<AspectPosition>();
-        ap.Alignment = AspectPosition.EdgeAlignments.RightTop;
-        ap.DistanceFromEdge = Position;
-        ap.AdjustPosition();
     }
 }
